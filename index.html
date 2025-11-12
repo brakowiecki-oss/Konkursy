@@ -75,14 +75,13 @@
   </div>
 
   <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbytwtTMlc8RvcPPkCDpUIGWDzgjSlaKYv511kywxUKeZNC68FloNTl42jFYjJiVRuu3GA/exec";
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxjXvYMWlVcHxZpSgVgaEbEp-magpwzta3fL0dwMjKTPYnt7-HED0u9i-8E2FdX-A7YFg/exec";
 
-    let students = {}; // {klasa: [uczniowie]}
-    let contests = []; // pełna lista z arkusza
+    let students = {};
+    let contests = [];
     let selectedStudent = null;
     let editIndex = null;
 
-    // Pobierz dane z arkusza
     async function loadData() {
       const res = await fetch(scriptURL);
       const data = await res.json();
@@ -96,6 +95,7 @@
 
       renderClassList();
       updateClassSelect();
+      if(selectedStudent) renderContests();
     }
 
     function updateClassSelect() {
@@ -145,7 +145,7 @@
       container.innerHTML = "";
       contests
         .filter(c => `${c.klasa}-${c.uczen}` === selectedStudent)
-        .forEach((c, i) => {
+        .forEach(c => {
           const row = document.createElement("div");
           row.className = "contest-item";
           row.innerHTML = `
@@ -153,28 +153,31 @@
               <strong>${c.konkurs}</strong> – etap: <em>${c.etap}</em>, data: ${c.data || "brak"}, wynik: ${c.wynik}
             </div>
             <div class="contest-actions">
-              <button class="edit-btn" onclick="editContest(${i})">✏️</button>
-              <button class="delete-btn" onclick="deleteContest(${i})">🗑️</button>
+              <button class="edit-btn" onclick="editContest(${c.id})">✏️</button>
+              <button class="delete-btn" onclick="deleteContest(${c.id})">🗑️</button>
             </div>`;
           container.appendChild(row);
         });
     }
 
-    function editContest(i) {
-      const c = contests.filter(c => `${c.klasa}-${c.uczen}` === selectedStudent)[i];
+    function editContest(id) {
+      const c = contests.find(c => c.id == id);
       document.getElementById("contestName").value = c.konkurs;
       document.getElementById("contestStage").value = c.etap;
       document.getElementById("contestDate").value = c.data;
       document.getElementById("contestResult").value = c.wynik;
+      editIndex = id;
       document.getElementById("formTitle").textContent = "Edytuj konkurs";
       document.getElementById("addContestBtn").textContent = "Zapisz zmiany";
-      editIndex = i;
     }
 
-    async function deleteContest(i) {
+    async function deleteContest(id) {
       if (!confirm("Czy na pewno chcesz usunąć ten konkurs?")) return;
-      const c = contests.filter(c => `${c.klasa}-${c.uczen}` === selectedStudent)[i];
-      alert("Usuń w arkuszu ręcznie, aby zmiany były trwałe."); // Google Sheets API do usuwania wymaga Apps Script modyfikacji
+      await fetch(scriptURL, {
+        method: "POST",
+        body: JSON.stringify({ action: "delete", id }),
+        headers: { "Content-Type": "application/json" }
+      });
       loadData();
     }
 
@@ -189,7 +192,11 @@
       if (!konkurs || !wynik) return alert("Uzupełnij nazwę konkursu i wynik!");
       if (!selectedStudent) return alert("Najpierw wybierz ucznia.");
 
-      const payload = { klasa, uczen, konkurs, etap, data, wynik };
+      const payload = {
+        action: editIndex ? "edit" : "add",
+        id: editIndex,
+        klasa, uczen, konkurs, etap, data, wynik
+      };
 
       await fetch(scriptURL, {
         method: "POST",
@@ -200,6 +207,7 @@
       document.getElementById("contestName").value = "";
       document.getElementById("contestDate").value = "";
       document.getElementById("contestResult").value = "";
+      editIndex = null;
       document.getElementById("formTitle").textContent = "Dodaj konkurs";
       document.getElementById("addContestBtn").textContent = "Dodaj konkurs";
 
