@@ -12,7 +12,7 @@
       height: 100vh;
     }
     .sidebar {
-      width: 220px;
+      width: 250px;
       background: #2c3e50;
       color: white;
       padding: 15px;
@@ -22,6 +22,13 @@
       font-size: 1.1em;
       border-bottom: 1px solid #fff3;
       padding-bottom: 5px;
+      margin-bottom: 10px;
+    }
+    .sidebar input {
+      width: 100%;
+      padding: 6px;
+      border: none;
+      border-radius: 4px;
       margin-bottom: 10px;
     }
     .class-item {
@@ -75,17 +82,44 @@
       padding: 10px;
       border-radius: 6px;
       box-shadow: 0 1px 3px #0002;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .contest-text {
+      flex: 1;
+    }
+    .contest-actions button {
+      margin-left: 5px;
+      padding: 4px 8px;
+      font-size: 0.9em;
+    }
+    .edit-btn {
+      background: #f39c12;
+    }
+    .edit-btn:hover {
+      background: #e67e22;
+    }
+    .delete-btn {
+      background: #e74c3c;
+    }
+    .delete-btn:hover {
+      background: #c0392b;
     }
   </style>
 </head>
 <body>
-  <div class="sidebar" id="classList"></div>
+  <div class="sidebar">
+    <h2>Uczniowie</h2>
+    <input type="text" id="searchInput" placeholder="Wyszukaj ucznia..." />
+    <div id="classList"></div>
+  </div>
 
   <div class="content">
-    <h1 id="studentTitle">Wybierz ucznia z listy</h1>
+    <h1 id="studentTitle">Wybierz ucznia</h1>
     <div id="contestSection" style="display:none;">
       <div class="contest-form">
-        <h3>Dodaj konkurs</h3>
+        <h3 id="formTitle">Dodaj konkurs</h3>
         <label>
           Nazwa konkursu:
           <input type="text" id="contestName" placeholder="np. Konkurs Matematyczny" />
@@ -98,6 +132,10 @@
             <option value="Powiatowy">Powiatowy</option>
             <option value="Ogólnopolski">Ogólnopolski</option>
           </select>
+        </label>
+        <label>
+          Data konkursu:
+          <input type="date" id="contestDate" />
         </label>
         <label>
           Wynik:
@@ -120,20 +158,24 @@
 
     const studentContests = JSON.parse(localStorage.getItem("contestData")) || {};
     let selectedStudent = null;
+    let editIndex = null;
 
     function saveData() {
       localStorage.setItem("contestData", JSON.stringify(studentContests));
     }
 
-    function renderClassList() {
+    function renderClassList(filter = "") {
       const classList = document.getElementById("classList");
-      classList.innerHTML = "<h2>Klasy</h2>";
+      classList.innerHTML = "";
 
       for (const [className, studentNames] of Object.entries(students)) {
+        const matching = studentNames.filter(s => s.toLowerCase().includes(filter.toLowerCase()));
+        if (filter && matching.length === 0) continue;
+
         const div = document.createElement("div");
         div.className = "class-item";
         div.innerHTML = `<strong>${className}</strong>`;
-        studentNames.forEach((s) => {
+        (filter ? matching : studentNames).forEach((s) => {
           const link = document.createElement("a");
           link.textContent = s;
           link.href = "#";
@@ -146,6 +188,9 @@
 
     function selectStudent(id) {
       selectedStudent = id;
+      editIndex = null;
+      document.getElementById("formTitle").textContent = "Dodaj konkurs";
+      document.getElementById("addContestBtn").textContent = "Dodaj konkurs";
       document.getElementById("studentTitle").textContent = `Konkursy: ${id.split("-")[1]}`;
       document.getElementById("contestSection").style.display = "block";
 
@@ -163,16 +208,43 @@
         const row = document.createElement("div");
         row.className = "contest-item";
         row.innerHTML = `
-          <strong>${i + 1}. ${c.name}</strong> 
-          – etap: <em>${c.stage}</em>, wynik: ${c.result}
+          <div class="contest-text">
+            <strong>${c.name}</strong> – etap: <em>${c.stage}</em>,
+            data: ${c.date || "brak"},
+            wynik: ${c.result}
+          </div>
+          <div class="contest-actions">
+            <button class="edit-btn" onclick="editContest(${i})">✏️</button>
+            <button class="delete-btn" onclick="deleteContest(${i})">🗑️</button>
+          </div>
         `;
         container.appendChild(row);
       });
     }
 
+    function editContest(index) {
+      const c = studentContests[selectedStudent][index];
+      document.getElementById("contestName").value = c.name;
+      document.getElementById("contestStage").value = c.stage;
+      document.getElementById("contestDate").value = c.date;
+      document.getElementById("contestResult").value = c.result;
+      document.getElementById("formTitle").textContent = "Edytuj konkurs";
+      document.getElementById("addContestBtn").textContent = "Zapisz zmiany";
+      editIndex = index;
+    }
+
+    function deleteContest(index) {
+      if (confirm("Czy na pewno chcesz usunąć ten konkurs?")) {
+        studentContests[selectedStudent].splice(index, 1);
+        saveData();
+        renderContests();
+      }
+    }
+
     document.getElementById("addContestBtn").addEventListener("click", () => {
       const name = document.getElementById("contestName").value.trim();
       const stage = document.getElementById("contestStage").value;
+      const date = document.getElementById("contestDate").value;
       const result = document.getElementById("contestResult").value.trim();
 
       if (!name || !result) {
@@ -185,13 +257,27 @@
         return;
       }
 
-      const contest = { name, stage, result };
-      studentContests[selectedStudent].push(contest);
+      const contest = { name, stage, date, result };
+
+      if (editIndex !== null) {
+        studentContests[selectedStudent][editIndex] = contest;
+        editIndex = null;
+        document.getElementById("formTitle").textContent = "Dodaj konkurs";
+        document.getElementById("addContestBtn").textContent = "Dodaj konkurs";
+      } else {
+        studentContests[selectedStudent].push(contest);
+      }
+
       saveData();
       renderContests();
 
       document.getElementById("contestName").value = "";
+      document.getElementById("contestDate").value = "";
       document.getElementById("contestResult").value = "";
+    });
+
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+      renderClassList(e.target.value);
     });
 
     renderClassList();
