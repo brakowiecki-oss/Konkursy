@@ -3,119 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Konkursy uczniów</title>
+  <title>Konkursy uczniów (Google Sheets)</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      display: flex;
-      height: 100vh;
-    }
-    .sidebar {
-      width: 270px;
-      background: #2c3e50;
-      color: white;
-      padding: 15px;
-      overflow-y: auto;
-    }
-    .sidebar h2 {
-      font-size: 1.1em;
-      border-bottom: 1px solid #fff3;
-      padding-bottom: 5px;
-      margin-bottom: 10px;
-    }
-    .sidebar input, .sidebar select {
-      width: 100%;
-      padding: 6px;
-      border: none;
-      border-radius: 4px;
-      margin-bottom: 10px;
-    }
-    .sidebar button {
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 6px;
-      background: #3498db;
-      border: none;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .sidebar button:hover {
-      background: #2980b9;
-    }
-    .class-item {
-      margin-bottom: 10px;
-    }
-    .class-item a {
-      color: #ecf0f1;
-      text-decoration: none;
-      display: block;
-      padding: 4px 0;
-      border-radius: 4px;
-    }
-    .class-item a:hover {
-      background: #34495e;
-    }
-    .content {
-      flex: 1;
-      padding: 20px;
-      background: #ecf0f1;
-      overflow-y: auto;
-    }
-    h1 {
-      margin-top: 0;
-    }
-    label {
-      display: block;
-      margin: 8px 0 4px;
-    }
-    input, select {
-      padding: 6px;
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    button.action {
-      margin-top: 10px;
-      padding: 8px 12px;
-      background: #3498db;
-      border: none;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button.action:hover {
-      background: #2980b9;
-    }
-    .contest-item {
-      background: white;
-      margin: 5px 0;
-      padding: 10px;
-      border-radius: 6px;
-      box-shadow: 0 1px 3px #0002;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .contest-actions button {
-      margin-left: 5px;
-      padding: 4px 8px;
-      font-size: 0.9em;
-    }
-    .edit-btn {
-      background: #f39c12;
-    }
-    .edit-btn:hover {
-      background: #e67e22;
-    }
-    .delete-btn {
-      background: #e74c3c;
-    }
-    .delete-btn:hover {
-      background: #c0392b;
-    }
+    body { font-family: Arial, sans-serif; margin: 0; display: flex; height: 100vh; }
+    .sidebar { width: 270px; background: #2c3e50; color: white; padding: 15px; overflow-y: auto; }
+    .sidebar h2 { font-size: 1.1em; border-bottom: 1px solid #fff3; padding-bottom: 5px; margin-bottom: 10px; }
+    .sidebar input, .sidebar select { width: 100%; padding: 6px; border: none; border-radius: 4px; margin-bottom: 10px; }
+    .sidebar button { width: 100%; margin-bottom: 10px; padding: 6px; background: #3498db; border: none; color: white; border-radius: 4px; cursor: pointer; }
+    .sidebar button:hover { background: #2980b9; }
+    .class-item { margin-bottom: 10px; }
+    .class-item a { color: #ecf0f1; text-decoration: none; display: block; padding: 4px 0; border-radius: 4px; }
+    .class-item a:hover { background: #34495e; }
+    .content { flex: 1; padding: 20px; background: #ecf0f1; overflow-y: auto; }
+    h1 { margin-top: 0; }
+    label { display: block; margin: 8px 0 4px; }
+    input, select { padding: 6px; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+    button.action { margin-top: 10px; padding: 8px 12px; background: #3498db; border: none; color: white; border-radius: 4px; cursor: pointer; }
+    button.action:hover { background: #2980b9; }
+    .contest-item { background: white; margin: 5px 0; padding: 10px; border-radius: 6px; box-shadow: 0 1px 3px #0002; display: flex; justify-content: space-between; align-items: center; }
+    .contest-actions button { margin-left: 5px; padding: 4px 8px; font-size: 0.9em; }
+    .edit-btn { background: #f39c12; }
+    .edit-btn:hover { background: #e67e22; }
+    .delete-btn { background: #e74c3c; }
+    .delete-btn:hover { background: #c0392b; }
   </style>
 </head>
 <body>
@@ -165,21 +75,27 @@
   </div>
 
   <script>
-    let students = JSON.parse(localStorage.getItem("studentsData")) || {
-      "1A": ["Jan Kowalski", "Anna Nowak"],
-      "2B": ["Piotr Zieliński", "Maria Wiśniewska"]
-    };
-    const studentContests = JSON.parse(localStorage.getItem("contestData")) || {};
+    const scriptURL = "https://script.google.com/macros/s/AKfycbyDKRpKpUBltdffwTzFfbEmKScSebWd4yoibFibTtDxHXp6vGwkHG7K5Mlje5SohR8ZSw/exec";
+
+    let students = {}; // {klasa: [uczniowie]}
+    let contests = []; // pełna lista z arkusza
     let selectedStudent = null;
     let editIndex = null;
 
-    function saveStudents() {
-      localStorage.setItem("studentsData", JSON.stringify(students));
-      updateClassSelect();
-    }
+    // Pobierz dane z arkusza
+    async function loadData() {
+      const res = await fetch(scriptURL);
+      const data = await res.json();
+      students = {};
+      contests = data;
 
-    function saveContests() {
-      localStorage.setItem("contestData", JSON.stringify(studentContests));
+      data.forEach(r => {
+        if (!students[r.klasa]) students[r.klasa] = [];
+        if (!students[r.klasa].includes(r.uczen)) students[r.klasa].push(r.uczen);
+      });
+
+      renderClassList();
+      updateClassSelect();
     }
 
     function updateClassSelect() {
@@ -196,7 +112,6 @@
     function renderClassList(filter = "") {
       const classList = document.getElementById("classList");
       classList.innerHTML = "";
-
       for (const [className, studentNames] of Object.entries(students)) {
         const matching = studentNames.filter(s => s.toLowerCase().includes(filter.toLowerCase()));
         if (filter && matching.length === 0) continue;
@@ -222,72 +137,73 @@
       document.getElementById("addContestBtn").textContent = "Dodaj konkurs";
       document.getElementById("studentTitle").textContent = `Konkursy: ${id.split("-")[1]}`;
       document.getElementById("contestSection").style.display = "block";
-
-      if (!studentContests[selectedStudent]) studentContests[selectedStudent] = [];
       renderContests();
     }
 
     function renderContests() {
       const container = document.getElementById("contestList");
       container.innerHTML = "";
-      studentContests[selectedStudent].forEach((c, i) => {
-        const row = document.createElement("div");
-        row.className = "contest-item";
-        row.innerHTML = `
-          <div class="contest-text">
-            <strong>${c.name}</strong> – etap: <em>${c.stage}</em>,
-            data: ${c.date || "brak"}, wynik: ${c.result}
-          </div>
-          <div class="contest-actions">
-            <button class="edit-btn" onclick="editContest(${i})">✏️</button>
-            <button class="delete-btn" onclick="deleteContest(${i})">🗑️</button>
-          </div>`;
-        container.appendChild(row);
-      });
+      contests
+        .filter(c => `${c.klasa}-${c.uczen}` === selectedStudent)
+        .forEach((c, i) => {
+          const row = document.createElement("div");
+          row.className = "contest-item";
+          row.innerHTML = `
+            <div class="contest-text">
+              <strong>${c.konkurs}</strong> – etap: <em>${c.etap}</em>, data: ${c.data || "brak"}, wynik: ${c.wynik}
+            </div>
+            <div class="contest-actions">
+              <button class="edit-btn" onclick="editContest(${i})">✏️</button>
+              <button class="delete-btn" onclick="deleteContest(${i})">🗑️</button>
+            </div>`;
+          container.appendChild(row);
+        });
     }
 
     function editContest(i) {
-      const c = studentContests[selectedStudent][i];
-      document.getElementById("contestName").value = c.name;
-      document.getElementById("contestStage").value = c.stage;
-      document.getElementById("contestDate").value = c.date;
-      document.getElementById("contestResult").value = c.result;
+      const c = contests.filter(c => `${c.klasa}-${c.uczen}` === selectedStudent)[i];
+      document.getElementById("contestName").value = c.konkurs;
+      document.getElementById("contestStage").value = c.etap;
+      document.getElementById("contestDate").value = c.data;
+      document.getElementById("contestResult").value = c.wynik;
       document.getElementById("formTitle").textContent = "Edytuj konkurs";
       document.getElementById("addContestBtn").textContent = "Zapisz zmiany";
       editIndex = i;
     }
 
-    function deleteContest(i) {
-      if (confirm("Czy na pewno chcesz usunąć ten konkurs?")) {
-        studentContests[selectedStudent].splice(i, 1);
-        saveContests();
-        renderContests();
-      }
+    async function deleteContest(i) {
+      if (!confirm("Czy na pewno chcesz usunąć ten konkurs?")) return;
+      const c = contests.filter(c => `${c.klasa}-${c.uczen}` === selectedStudent)[i];
+      alert("Usuń w arkuszu ręcznie, aby zmiany były trwałe."); // Google Sheets API do usuwania wymaga Apps Script modyfikacji
+      loadData();
     }
 
-    document.getElementById("addContestBtn").addEventListener("click", () => {
-      const name = document.getElementById("contestName").value.trim();
-      const stage = document.getElementById("contestStage").value;
-      const date = document.getElementById("contestDate").value;
-      const result = document.getElementById("contestResult").value.trim();
+    document.getElementById("addContestBtn").addEventListener("click", async () => {
+      const klasa = selectedStudent.split("-")[0];
+      const uczen = selectedStudent.split("-")[1];
+      const konkurs = document.getElementById("contestName").value.trim();
+      const etap = document.getElementById("contestStage").value;
+      const data = document.getElementById("contestDate").value;
+      const wynik = document.getElementById("contestResult").value.trim();
 
-      if (!name || !result) return alert("Uzupełnij nazwę konkursu i wynik!");
+      if (!konkurs || !wynik) return alert("Uzupełnij nazwę konkursu i wynik!");
       if (!selectedStudent) return alert("Najpierw wybierz ucznia.");
 
-      const contest = { name, stage, date, result };
-      if (editIndex !== null) {
-        studentContests[selectedStudent][editIndex] = contest;
-        editIndex = null;
-        document.getElementById("formTitle").textContent = "Dodaj konkurs";
-        document.getElementById("addContestBtn").textContent = "Dodaj konkurs";
-      } else {
-        studentContests[selectedStudent].push(contest);
-      }
-      saveContests();
-      renderContests();
+      const payload = { klasa, uczen, konkurs, etap, data, wynik };
+
+      await fetch(scriptURL, {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" }
+      });
+
       document.getElementById("contestName").value = "";
       document.getElementById("contestDate").value = "";
       document.getElementById("contestResult").value = "";
+      document.getElementById("formTitle").textContent = "Dodaj konkurs";
+      document.getElementById("addContestBtn").textContent = "Dodaj konkurs";
+
+      loadData();
     });
 
     document.getElementById("addClassBtn").addEventListener("click", () => {
@@ -295,7 +211,7 @@
       if (!cls) return alert("Podaj nazwę klasy!");
       if (students[cls]) return alert("Taka klasa już istnieje!");
       students[cls] = [];
-      saveStudents();
+      updateClassSelect();
       renderClassList();
       document.getElementById("newClassInput").value = "";
     });
@@ -304,10 +220,7 @@
       const cls = document.getElementById("classSelect").value;
       const name = document.getElementById("newStudentInput").value.trim();
       if (!cls || !name) return alert("Podaj klasę i imię ucznia!");
-      if (!students[cls]) students[cls] = [];
-      if (students[cls].includes(name)) return alert("Taki uczeń już istnieje!");
-      students[cls].push(name);
-      saveStudents();
+      if (!students[cls].includes(name)) students[cls].push(name);
       renderClassList();
       document.getElementById("newStudentInput").value = "";
     });
@@ -316,8 +229,7 @@
       renderClassList(e.target.value);
     });
 
-    updateClassSelect();
-    renderClassList();
+    loadData();
   </script>
 </body>
 </html>
